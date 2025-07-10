@@ -1,0 +1,439 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>元认知预备营自测</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@400;500;700&display=swap" rel="stylesheet">
+    <style>
+        /* --- 基础和布局样式 --- */
+        :root {
+            --green: #4CAF50;
+            --orange: #FF9800;
+            --red: #F44336;
+            --blue: #2196F3;
+            --light-blue: #a0c8e8;
+            --shadow-color: rgba(0, 0, 0, 0.1);
+            --shadow-color-hover: rgba(0, 0, 0, 0.2);
+            --tile-size: 80px; /* 定义拼图块尺寸变量 */
+            --gap-size: 8px;   /* 定义间距变量 */
+        }
+
+        body {
+            font-family: 'Noto Sans SC', sans-serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            background: linear-gradient(135deg, #e0c3fc 0%, #8ec5fc 100%);
+            min-height: 100vh;
+            margin: 0;
+            padding: 20px;
+            box-sizing: border-box;
+        }
+
+        h1 {
+            color: #fff;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.2);
+            margin-bottom: 30px;
+        }
+
+        #game-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            width: 100%;
+            max-width: 1200px; /* 调整最大宽度以适应新布局 */
+        }
+
+        .puzzles {
+            display: flex;
+            justify-content: center; /* 居中对齐 */
+            flex-wrap: wrap; /* 在窄屏上允许换行 */
+            gap: 20px; /* 卡片间距 */
+            width: 100%;
+            margin-bottom: 30px;
+        }
+
+        .puzzle-wrapper {
+            background: rgba(255, 255, 255, 0.8);
+            backdrop-filter: blur(10px);
+            border-radius: 15px;
+            padding: 15px;
+            box-shadow: 0 10px 20px rgba(0, 0, 0, 0.1);
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+
+        .puzzle-wrapper:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 15px 25px rgba(0, 0, 0, 0.15);
+        }
+        
+        .puzzle-title {
+            font-size: 1.2rem; /* 调整标题字体大小 */
+            font-weight: 700;
+            text-align: center;
+            margin-bottom: 15px;
+            color: #333;
+        }
+
+        .puzzle {
+            display: grid;
+            /* 使用变量计算网格 */
+            grid-template-columns: repeat(4, var(--tile-size));
+            grid-template-rows: repeat(3, var(--tile-size));
+            gap: var(--gap-size);
+            width: calc(var(--tile-size) * 4 + var(--gap-size) * 3);
+            height: calc(var(--tile-size) * 3 + var(--gap-size) * 2);
+            position: relative;
+        }
+        
+        /* --- 拼图块样式 --- */
+        .tile {
+            width: var(--tile-size);
+            height: var(--tile-size);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            text-align: center;
+            font-size: 11px; /* 调整字体大小以适应新尺寸 */
+            font-weight: 500;
+            color: white;
+            padding: 2px;
+            text-shadow: 1px 1px 2px rgba(0,0,0,0.4);
+            border-radius: 8px;
+            position: absolute;
+            box-sizing: border-box;
+            cursor: grab;
+            z-index: 10;
+            transition: transform 0.2s ease-in-out, box-shadow 0.2s ease-in-out, opacity 0.2s;
+            box-shadow: 0 4px 8px var(--shadow-color);
+        }
+
+        .tile:hover {
+            transform: translateY(-5px) scale(1.05);
+            box-shadow: 0 8px 16px var(--shadow-color-hover);
+            z-index: 11;
+        }
+
+        .tile.dragging {
+            cursor: grabbing;
+            opacity: 0.6;
+            transform: scale(1.1) rotate(5deg);
+            box-shadow: 0 12px 24px var(--shadow-color-hover);
+            z-index: 12;
+        }
+        
+        .tile.placed {
+            animation: pop 0.3s ease-in-out;
+            cursor: default;
+        }
+
+        @keyframes pop {
+            0% { transform: scale(0.8); }
+            80% { transform: scale(1.1); }
+            100% { transform: scale(1); }
+        }
+
+        .tile[data-color="green"] { background-color: var(--green); }
+        .tile[data-color="orange"] { background-color: var(--orange); }
+        .tile[data-color="red"] { background-color: var(--red); }
+
+        /* --- 目标区域样式 --- */
+        #final-puzzle-wrapper {
+             background: rgba(255, 255, 255, 0.8);
+            backdrop-filter: blur(10px);
+            border-radius: 15px;
+            padding: 20px;
+            box-shadow: 0 10px 20px rgba(0, 0, 0, 0.1);
+        }
+        
+        #final-puzzle {
+            display: grid;
+            grid-template-columns: repeat(4, var(--tile-size));
+            grid-template-rows: repeat(3, var(--tile-size));
+            gap: var(--gap-size);
+            width: calc(var(--tile-size) * 4 + var(--gap-size) * 3);
+            height: calc(var(--tile-size) * 3 + var(--gap-size) * 2);
+            position: relative;
+            border: 2px dashed #ccc;
+            border-radius: 10px;
+            padding: 5px; /* 内边距以更好地显示虚线 */
+        }
+
+        .tile-drop {
+            width: var(--tile-size);
+            height: var(--tile-size);
+            border: 2px dashed var(--light-blue);
+            background-color: rgba(255, 255, 255, 0.7);
+            border-radius: 8px;
+            box-sizing: border-box;
+            transition: background-color 0.2s ease, border-color 0.2s ease;
+        }
+
+        .tile-drop.hovered {
+            background-color: rgba(173, 216, 230, 0.5);
+            border-color: var(--blue);
+            border-style: solid;
+        }
+        
+        .tile-drop:has(.tile) {
+            border-color: transparent;
+            background-color: transparent;
+        }
+
+        /* --- 分数和消息提示框样式 --- */
+        #score {
+            margin-top: 30px;
+            font-size: 1.2rem;
+            font-weight: bold;
+            color: #2c3e50;
+            background: white;
+            padding: 15px 25px;
+            border-radius: 10px;
+            box-shadow: 0 4px 8px var(--shadow-color);
+            opacity: 0;
+            transform: translateY(20px);
+            transition: opacity 0.5s ease, transform 0.5s ease;
+        }
+
+        #score.show {
+            opacity: 1;
+            transform: translateY(0);
+        }
+        
+        #message-box {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%) scale(0.8);
+            background-color: #333;
+            color: white;
+            padding: 20px 40px;
+            border-radius: 10px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+            z-index: 100;
+            opacity: 0;
+            pointer-events: none;
+            transition: transform 0.3s cubic-bezier(0.18, 0.89, 0.32, 1.28), opacity 0.3s ease;
+        }
+
+        #message-box.show {
+            opacity: 1;
+            transform: translate(-50%, -50%) scale(1);
+        }
+
+    </style>
+</head>
+<body>
+    <h1>元认知预备营自测</h1>
+    <div id="game-container">
+        <div class="puzzles">
+            <div class="puzzle-wrapper">
+                <h2 class="puzzle-title" style="color: var(--green);">优秀</h2>
+                <div class="puzzle" id="green-puzzle">
+                    <!-- Green puzzle tiles -->
+                    <div class="tile" draggable="true" data-color="green" data-position="0">我很清楚元认知指什么</div>
+                    <div class="tile" draggable="true" data-color="green" data-position="1">我经常观察自己的学习行为</div>
+                    <div class="tile" draggable="true" data-color="green" data-position="2">我坚信自己有能力学好新东西</div>
+                    <div class="tile" draggable="true" data-color="green" data-position="3">我会主动寻找难题来挑战自己</div>
+                    <div class="tile" draggable="true" data-color="green" data-position="4">我能用3+个学习策略</div>
+                    <div class="tile" draggable="true" data-color="green" data-position="5">我制定过卓有成效的学习计划</div>
+                    <div class="tile" draggable="true" data-color="green" data-position="6">我认真学习过学习策略书并学以致用</div>
+                    <div class="tile" draggable="true" data-color="green" data-position="7">我有3+位伙伴能一起探讨学习方法</div>
+                    <div class="tile" draggable="true" data-color="green" data-position="8">我知道3种及以上英语阅读技巧</div>
+                    <div class="tile" draggable="true" data-color="green" data-position="9">我知道3种及以上英语思辨写作技巧</div>
+                    <div class="tile" draggable="true" data-color="green" data-position="10">我知道3种及以上英语听说技巧</div>
+                    <div class="tile" draggable="true" data-color="green" data-position="11">对于自己能学好英语充满信心</div>
+                </div>
+            </div>
+            <div class="puzzle-wrapper">
+                <h2 class="puzzle-title" style="color: var(--orange);">良好</h2>
+                <div class="puzzle" id="orange-puzzle">
+                    <!-- Orange puzzle tiles -->
+                    <div class="tile" draggable="true" data-color="orange" data-position="0">大概清楚元认知指什么</div>
+                    <div class="tile" draggable="true" data-color="orange" data-position="1">我偶尔观察自己的学习行为</div>
+                    <div class="tile" draggable="true" data-color="orange" data-position="2">我不确定自己可以学好新东西</div>
+                    <div class="tile" draggable="true" data-color="orange" data-position="3">如果遇到难题我愿意被动试试</div>
+                    <div class="tile" draggable="true" data-color="orange" data-position="4">我会用1-2个学习策略</div>
+                    <div class="tile" draggable="true" data-color="orange" data-position="5">我只制定过简单初步的学习计划</div>
+                    <div class="tile" draggable="true" data-color="orange" data-position="6">我读过学习法指导书但没机会实践</div>
+                    <div class="tile" draggable="true" data-color="orange" data-position="7">我有1-2位伙伴能一起探讨学习方法</div>
+                    <div class="tile" draggable="true" data-color="orange" data-position="8">我只知道1-2种英语阅读技巧</div>
+                    <div class="tile" draggable="true" data-color="orange" data-position="9">我只知道1-2种英语思辨写作技巧</div>
+                    <div class="tile" draggable="true" data-color="orange" data-position="10">我只知道1-2种英语听说技巧</div>
+                    <div class="tile" draggable="true" data-color="orange" data-position="11">我对自己能学好英语半信半疑</div>
+                </div>
+            </div>
+            <div class="puzzle-wrapper">
+                 <h2 class="puzzle-title" style="color: var(--red);">努力</h2>
+                <div class="puzzle" id="red-puzzle">
+                    <!-- Red puzzle tiles -->
+                    <div class="tile" draggable="true" data-color="red" data-position="0">我不理解元认知的含义</div>
+                    <div class="tile" draggable="true" data-color="red" data-position="1">我从没观察自己的学习行为</div>
+                    <div class="tile" draggable="true" data-color="red" data-position="2">我认为自己肯定学不好新东西</div>
+                    <div class="tile" draggable="true" data-color="red" data-position="3">我从未攻克过我觉得难的问题</div>
+                    <div class="tile" draggable="true" data-color="red" data-position="4">我不用什么学习策略</div>
+                    <div class="tile" draggable="true" data-color="red" data-position="5">我从不为学习做计划</div>
+                    <div class="tile" draggable="true" data-color="red" data-position="6">我从未读过指导学习法的书</div>
+                    <div class="tile" draggable="true" data-color="red" data-position="7">我没有能够一起探讨学习方法的伙伴</div>
+                    <div class="tile" draggable="true" data-color="red" data-position="8">我没有任何英语阅读技巧</div>
+                    <div class="tile" draggable="true" data-color="red" data-position="9">我没有任何英语思辨写作技巧</div>
+                    <div class="tile" draggable="true" data-color="red" data-position="10">我没有任何英语听说技巧</div>
+                    <div class="tile" draggable="true" data-color="red" data-position="11">我不相信自己可以学好英语</div>
+                </div>
+            </div>
+        </div>
+        <div id="final-puzzle-wrapper">
+             <h2 class="puzzle-title" style="color: var(--blue);">我的元认知蓝图</h2>
+            <div id="final-puzzle">
+                <!-- Drop areas for puzzle pieces -->
+                <div class="tile-drop" data-position="0"></div>
+                <div class="tile-drop" data-position="1"></div>
+                <div class="tile-drop" data-position="2"></div>
+                <div class="tile-drop" data-position="3"></div>
+                <div class="tile-drop" data-position="4"></div>
+                <div class="tile-drop" data-position="5"></div>
+                <div class="tile-drop" data-position="6"></div>
+                <div class="tile-drop" data-position="7"></div>
+                <div class="tile-drop" data-position="8"></div>
+                <div class="tile-drop" data-position="9"></div>
+                <div class="tile-drop" data-position="10"></div>
+                <div class="tile-drop" data-position="11"></div>
+            </div>
+        </div>
+        <div id="score">
+            <!-- Score will be displayed here -->
+        </div>
+    </div>
+    
+    <div id="message-box"></div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const tiles = document.querySelectorAll('.tile');
+            const drops = document.querySelectorAll('.tile-drop');
+            const scoreElement = document.getElementById('score');
+            const messageBox = document.getElementById('message-box');
+            let draggedTile = null;
+
+            tiles.forEach(tile => {
+                tile.addEventListener('dragstart', dragStart);
+                tile.addEventListener('dragend', dragEnd);
+            });
+
+            drops.forEach(drop => {
+                drop.addEventListener('dragover', dragOver);
+                drop.addEventListener('dragenter', dragEnter);
+                drop.addEventListener('dragleave', dragLeave);
+                drop.addEventListener('drop', dropTile);
+            });
+            
+            // 重新排列初始拼图块的位置，使其看起来更自然
+            document.querySelectorAll('.puzzle').forEach(puzzle => {
+                const puzzleTiles = Array.from(puzzle.querySelectorAll('.tile'));
+                const TILE_SIZE = 80; // 对应 CSS 变量 --tile-size
+                const GAP_SIZE = 8;   // 对应 CSS 变量 --gap-size
+                
+                puzzleTiles.forEach(tile => {
+                    const pos = parseInt(tile.dataset.position);
+                    const x = (pos % 4) * (TILE_SIZE + GAP_SIZE);
+                    const y = Math.floor(pos / 4) * (TILE_SIZE + GAP_SIZE);
+                    tile.style.left = `${x}px`;
+                    tile.style.top = `${y}px`;
+                });
+            });
+
+            function dragStart(e) {
+                draggedTile = e.currentTarget;
+                e.dataTransfer.setData('text/plain', draggedTile.dataset.position);
+                e.dataTransfer.setData('text/color', draggedTile.dataset.color);
+                
+                setTimeout(() => {
+                    draggedTile.classList.add('dragging');
+                }, 0);
+            }
+
+            function dragEnd() {
+                if (draggedTile) {
+                    draggedTile.classList.remove('dragging');
+                    draggedTile = null;
+                }
+            }
+
+            function dragOver(e) {
+                e.preventDefault();
+            }
+
+            function dragEnter(e) {
+                e.preventDefault();
+                if (e.target.classList.contains('tile-drop') && !e.target.hasChildNodes()) {
+                    e.target.classList.add('hovered');
+                }
+            }
+
+            function dragLeave(e) {
+                if (e.target.classList.contains('tile-drop')) {
+                    e.target.classList.remove('hovered');
+                }
+            }
+
+            function dropTile(e) {
+                e.preventDefault();
+                e.stopPropagation();
+                
+                const targetDrop = e.target.closest('.tile-drop');
+                if (!targetDrop || targetDrop.hasChildNodes() || !draggedTile) {
+                    return;
+                }
+
+                const position = e.dataTransfer.getData('text/plain');
+                const correctPosition = targetDrop.dataset.position;
+                
+                targetDrop.classList.remove('hovered');
+
+                if (position === correctPosition) {
+                    draggedTile.style.position = 'static';
+                    targetDrop.appendChild(draggedTile);
+                    draggedTile.classList.add('placed');
+                    
+                    checkCompletion();
+                } else {
+                    showMessage('请将拼图块放置在对应的位置！');
+                }
+            }
+
+            function checkCompletion() {
+                const placedTiles = document.querySelectorAll('#final-puzzle .tile');
+                if (placedTiles.length === drops.length) {
+                    calculateScore();
+                }
+            }
+            
+            function showMessage(text) {
+                messageBox.textContent = text;
+                messageBox.classList.add('show');
+                setTimeout(() => {
+                    messageBox.classList.remove('show');
+                }, 2000);
+            }
+
+            function calculateScore() {
+                const colorCounts = { green: 0, orange: 0, red: 0 };
+                const finalTiles = document.querySelectorAll('#final-puzzle .tile');
+
+                finalTiles.forEach(tile => {
+                    colorCounts[tile.dataset.color]++;
+                });
+
+                const { green, orange, red } = colorCounts;
+                const score = ((green * 30 + orange * 20 + red * 10) * 100) / 360;
+
+                scoreElement.innerHTML = `优秀块数：${green}，良好块数：${orange}，努力块数：${red}<br>学习力总分：<strong>${score.toFixed(2)}</strong>分`;
+                scoreElement.classList.add('show');
+            }
+        });
+    </script>
+</body>
+</html>
